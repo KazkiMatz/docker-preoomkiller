@@ -65,7 +65,18 @@ def printMemoryStats(limit, used, fact):
 # Force disable stdout buffering.
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
 
-def main():
+def main(args):
+  if '-q' in args:
+    limit, used, fact = getMemoryStats()
+
+    printMemoryStats(limit, used, fact)
+
+    if fact >= MEMORY_USE_FACTOR:
+      print("PreOOMKiller: Container is over configured memory use factor!")
+      sys.exit(1)
+
+    sys.exit(0)
+
   if ENABLE_PREOOMKILLER is None:
     print("PreOOMKiller: Not starting preoomkiller as ENABLE_PREOOMKILLER is unset!")
     return
@@ -98,4 +109,4 @@ def main():
     time.sleep(POLL_INTERVAL)
 
 if __name__ == "__main__":
-  main()
+  main(sys.argv[1:])
