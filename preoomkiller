@@ -11,7 +11,7 @@ Use:
   - Set PREOOMKILLER_MEMORY_USE_FACTOR, PREOOMKILLER_POLL_INTERVAL, PREOOMKILLER_KILL_SIGNAL, PREOOMKILLER_KILL_PID and PREOOMKILLER_GRACE_PERIOD as desired
 """
 
-import sys, time, os, signal
+import sys, time, os, signal, subprocess
 
 ENABLE_PREOOMKILLER = os.environ.get("ENABLE_PREOOMKILLER")
 DEBUG = os.environ.get("PREOOMKILLER_DEBUG")
@@ -21,6 +21,7 @@ KILL_SIGNAL = int(os.environ.get("PREOOMKILLER_KILL_SIGNAL", signal.SIGTERM))
 PARENT_PID = os.getppid()
 KILL_PID = int(os.environ.get("PREOOMKILLER_KILL_PID", PARENT_PID))
 GRACE_PERIOD = int(os.environ.get("PREOOMKILLER_GRACE_PERIOD", "30"))
+BASH_CMD_PROACTIVE = os.environ.get("BASH_CMD_PROACTIVE")
 
 EXIT_SIGNALS = [signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGPIPE, signal.SIGTERM]
 
@@ -77,6 +78,11 @@ def main(args):
 
     sys.exit(0)
 
+  if '--run-proactive' in args:
+    if BASH_CMD_PROACTIVE:
+      subprocess.call(BASH_CMD_PROACTIVE, shell=True)
+    sys.exit(0)
+
   if ENABLE_PREOOMKILLER is None:
     print("PreOOMKiller: Not starting preoomkiller as ENABLE_PREOOMKILLER is unset!")
     return
@@ -97,6 +103,10 @@ def main(args):
     if fact >= MEMORY_USE_FACTOR:
       print("PreOOMKiller: Container is over configured memory use factor!")
       printMemoryStats(limit, used, fact)
+
+      # Run pro-active command
+      if BASH_CMD_PROACTIVE:
+        subprocess.call(BASH_CMD_PROACTIVE, shell=True)
 
       # Kill the configured process
       print("PreOOMKiller: Killing process %s with signal %s." % (KILL_PID, KILL_SIGNAL))
